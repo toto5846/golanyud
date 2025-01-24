@@ -1,0 +1,92 @@
+# golan_display.py
+
+from ili9341 import Display, color565
+import time
+import math
+
+# Define the bitmap font with corrected L and A
+simple_font = {
+    'P': [0b11110, 0b10001, 0b11110, 0b10000, 0b10000, 0b00000, 0b00000],
+    'R': [0b11110, 0b10001, 0b11110, 0b10010, 0b10001, 0b00000, 0b00000],
+    'E': [0b11111, 0b10000, 0b11110, 0b10000, 0b11111, 0b00000, 0b00000],
+    'S': [0b01111, 0b10000, 0b01110, 0b00001, 0b11110, 0b00000, 0b00000],
+    'T': [0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00000],
+    'H': [0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b00000, 0b00000],
+    'G': [0b01110, 0b10001, 0b10000, 0b10111, 0b10001, 0b10001, 0b01110],
+    'N': [0b10001, 0b11001, 0b10101, 0b10101, 0b10011, 0b10001, 0b10001],
+    'B': [0b11110, 0b10001, 0b11110, 0b10001, 0b11110, 0b00000, 0b00000],
+    'U': [0b10001, 0b10001, 0b10001, 0b10001, 0b01110, 0b00000, 0b00000],
+    'O': [0b01110, 0b10001, 0b10001, 0b10001, 0b01110, 0b00000, 0b00000],
+    'L': [0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b11111, 0b00000],
+    'A': [0b01110, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b00000],
+    ' ': [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+}
+
+class GolanDisplay:
+    def __init__(self, spi, cs, dc, rst):
+        self.display = Display(spi, cs=cs, dc=dc, rst=rst)
+        self.display.clear(color565(255, 255, 255))  # White background
+
+    def draw_bitmap_char_vertical(self, x, y, char, color, scale=1):
+        if char not in simple_font:
+            char = ' '
+        char_bitmap = simple_font[char]
+        for row_idx, row in enumerate(char_bitmap):
+            for col_idx in range(5):
+                if row & (1 << (4 - col_idx)):
+                    for i in range(scale):
+                        for j in range(scale):
+                            self.display.draw_pixel(x + row_idx * scale + j, y - col_idx * scale + i, color)
+
+    def draw_vertical_text(self, x, y, text, color, scale=1, spacing=1):
+        char_height = 7 * scale
+        for char in text:
+            self.draw_bitmap_char_vertical(x, y, char, color, scale)
+            y -= char_height + spacing
+
+    def draw_gradient_wave(self, y, amplitude, frequency, color_func):
+        width = 240
+        for x in range(width):
+            wave_y = int(y + amplitude * math.sin(2 * math.pi * frequency * x / width))
+            self.display.draw_pixel(x, wave_y, color_func(x))
+
+    def color_func_wave(self, x):
+        r = (x * 5) % 256
+        g = (255 - x * 3) % 256
+        b = (x * 7) % 256
+        return color565(r, g, b)
+
+    def display_start_screen(self):
+        # Clear the screen to black for the "GOLAN" splash screen
+        self.display.clear(color565(0, 0, 0))  # Black background
+        x_logo_start = 120  # Center the logo horizontally
+        y_logo_start = 230 # Center the logo vertically
+        self.draw_vertical_text(x_logo_start, y_logo_start, text="GOLAN", color=color565(255, 255, 255), scale=5, spacing=3)
+        time.sleep(2)  # Show the logo for 2 seconds
+        self.display.clear(color565(255, 255, 255))  # Reset to white background
+
+    def run_animation(self):
+        # Draw vertical text and gradient wave animation
+        x_start = 2
+        y_start = 310
+        self.draw_vertical_text(x_start, y_start, text="PRESS", color=color565(0, 0, 0), scale=2, spacing=2)
+        self.draw_vertical_text(x_start + 40, y_start, text="THE", color=color565(0, 0, 0), scale=2, spacing=2)
+        self.draw_vertical_text(x_start + 80, y_start, text="GREEN", color=color565(0, 255, 0), scale=2, spacing=2)
+        self.draw_vertical_text(x_start + 120, y_start, text="BUTTON", color=color565(0, 0, 0), scale=2, spacing=2)
+
+        x_logo_start = 2
+        y_logo_start = 110
+        self.draw_vertical_text(x_logo_start, y_logo_start, text="GOLAN", color=color565(0, 0, 0), scale=3, spacing=2)
+
+        # Animate the gradient wave at the bottom
+        y_wave = 180
+        amplitude = 5
+        frequency = 2
+        while True:
+            # Clear the previous wave by drawing a white rectangle over it
+            for x in range(240):
+                for dy in range(-amplitude - 1, amplitude + 2):
+                    self.display.draw_pixel(x, y_wave + dy, color565(255, 255, 255))
+            # Draw the new wave
+            self.draw_gradient_wave(y_wave, amplitude, frequency, self.color_func_wave)
+            time.sleep(0.05)
