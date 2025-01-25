@@ -1,22 +1,19 @@
-import time
 from machine import Pin, SPI
-import neopixel
 from GolanDisplay import GolanDisplay  # Import the GolanDisplay class
+from ili9341 import color565
+import time
+import neopixel
 
 # NeoPixel setup
-NEO_PIN = 22  # Using GPIO22 for NeoPixel control (unchanged)
+NEO_PIN = 22  # Using GPIO22 for NeoPixel control
 NUM_LEDS = 4  # Adjust number of LEDs in your strip
-np = neopixel.NeoPixel(Pin(NEO_PIN, Pin.OUT), NUM_LEDS)
-
-# Define vibrant colors for the effect
-HOT_PINK = (255, 20, 147)
-AQUA = (0, 255, 255)
-LIME = (0, 255, 0)
-VIOLET = (238, 130, 238)
-ORANGE = (255, 165, 0)
-
-# List of new vibrant colors to use
-colors = [HOT_PINK, AQUA, LIME, VIOLET, ORANGE]
+colors = [
+    (255, 20, 147),  # HOT_PINK
+    (0, 255, 255),   # AQUA
+    (0, 255, 0),     # LIME
+    (238, 130, 238), # VIOLET
+    (255, 165, 0)    # ORANGE
+]
 
 # LED control class
 class LEDControl:
@@ -24,12 +21,7 @@ class LEDControl:
         self.pin = Pin(pin, Pin.OUT)
         self.num_leds = num_leds
         self.np = neopixel.NeoPixel(self.pin, self.num_leds)
-        self.current_led = 0  # To track the current LED for color movement
-
-    def set_all_leds(self, color):
-        for i in range(self.num_leds):
-            self.np[i] = color
-        self.np.write()
+        self.current_led = 0
 
     def moving_colors(self):
         for i in range(self.num_leds):
@@ -39,6 +31,7 @@ class LEDControl:
         self.current_led = (self.current_led + 1) % self.num_leds
         time.sleep(0.2)
 
+# Motor control class
 class SimpleMotor:
     def __init__(self, in1_pin, in2_pin, led_pin):
         self.in1 = Pin(in1_pin, Pin.OUT)
@@ -59,71 +52,61 @@ class SimpleMotor:
     def move_for_time(self, speed, duration):
         self.led.value(1)
         try:
-            if speed > 0:
-                print("Motor moved right")
-            elif speed < 0:
-                print("Motor moved left")
-            time.sleep(duration)
             self.motgo(speed)
             time.sleep(duration)
         finally:
             self.motgo(0)
             self.led.value(0)
 
-# Initialize the SPI interface and display pins
-spi = SPI(1, baudrate=33000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
-cs = Pin(5)
-dc = Pin(25)
-rst = Pin(33)
+def run_golan_display():
+    spi = SPI(1, baudrate=33000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
+    cs = Pin(5)
+    dc = Pin(25)
+    rst = Pin(33)
+    golan_display = GolanDisplay(spi, cs, dc, rst)
+    golan_display.display_start_screen()
+    golan_display.run_animation()
 
-# Create an instance of GolanDisplay
-golan_display = GolanDisplay(spi, cs, dc, rst)
+def run_motor_and_led():
+    in1_pin = 4
+    in2_pin = 13
+    led_pin = 2
+    button_pin = 12
+    quit_button_pin = 14
 
-# Show the starting "GOLAN" screen with black background for 2 seconds
-golan_display.display_start_screen()
+    button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)
+    quit_button = Pin(quit_button_pin, Pin.IN, Pin.PULL_DOWN)
+    motor = SimpleMotor(in1_pin, in2_pin, led_pin)
+    led_control = LEDControl(NEO_PIN, NUM_LEDS)
 
-# Run the animation at regular intervals
-last_animation_time = time.time()
+    move_right = True
+    print("Press the green button to move the motor. Press the red quit button to stop the program.")
 
-# Motor control pins
-in1_pin = 4  # GPIO4 for IN1 (new pin)
-in2_pin = 13  # GPIO13 for IN2 (new pin)
-led_pin = 2   # GPIO2 for the built-in LED (unchanged)
+    while True:
+        led_control.moving_colors()
 
-# Button pins
-button_pin = 12  # GPIO12 for button input (Move button)
-quit_button_pin = 14  # GPIO14 for quit button input
+        if quit_button.value() == 1:
+            print("Quit button pressed. Exiting motor control.")
+            break
 
-# Initialize buttons with pull-down resistors
-button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)  # Move button
-quit_button = Pin(quit_button_pin, Pin.IN, Pin.PULL_DOWN)  # Quit button
+        if button.value() == 1:
+            if move_right:
+                motor.move_for_time(1, 0.111)
+            else:
+                motor.move_for_time(-1, 0.111)
+            move_right = not move_right
+            time.sleep(0.3)
 
-# Create instances of the motor and LED control
-motor = SimpleMotor(in1_pin, in2_pin, led_pin)
-led_control = LEDControl(NEO_PIN, NUM_LEDS)
+def main():
+    # Run both programs independently
+    from _thread import start_new_thread
 
-move_right = True
-print("Press the green button to move the motor. Press the red quit button to stop the program.")
+    # Start Golan display in a separate thread
+    start_new_thread(run_golan_display, ())
 
-while True:
-    # Run the moving color effect in the background
-    led_control.moving_colors()
+    # Run motor and LED in the main thread
+    run_motor_and_led()
 
-    # Check if it's time to refresh the display
-    if time.time() - last_animation_time > 2:
-        golan_display.run_animation()  # Run the display animation at intervals
-        last_animation_time = time.time()
+if __name__ == "__main__":
+    main()
 
-    if quit_button.value() == 1:
-        print("Quit button pressed. Exiting program.")
-        break
-    
-    if button.value() == 1:
-        if move_right:
-            motor.move_for_time(1, 0.111)  # Move to the right
-        else:
-            motor.move_for_time(-1, 0.111)  # Move to the left
-        move_right = not move_right  # Toggle direction
-        time.sleep(0.3)  # Debounce delay to avoid repeated triggers
-
-print("Program stopped.")
