@@ -74,7 +74,7 @@ def run_motor_and_led():
     button_pin = 12
     quit_button_pin = 14
 
-    button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)
+    button = Pin(button_pin, Pin.IN, Pin.PULL_UP)  # שינוי ל-PULL_UP
     quit_button = Pin(quit_button_pin, Pin.IN, Pin.PULL_DOWN)
     motor = SimpleMotor(in1_pin, in2_pin, led_pin)
     led_control = LEDControl(NEO_PIN, NUM_LEDS)
@@ -89,7 +89,7 @@ def run_motor_and_led():
             print("Quit button pressed. Exiting motor control.")
             break
 
-        if button.value() == 1:
+        if button.value() == 0:  # עדכון ללחיצה ב-PULL_UP
             if move_right:
                 motor.move_for_time(1, 0.111)
             else:
@@ -109,4 +109,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
