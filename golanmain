@@ -1,4 +1,4 @@
-from machine import Pin, SPI
+from machine import Pin, SPI, PWM
 from GolanDisplay import GolanDisplay  # Import the GolanDisplay class
 from ili9341 import color565
 import time
@@ -34,20 +34,20 @@ class LEDControl:
 # Motor control class
 class SimpleMotor:
     def __init__(self, in1_pin, in2_pin, led_pin):
-        self.in1 = Pin(in1_pin, Pin.OUT)
-        self.in2 = Pin(in2_pin, Pin.OUT)
+        self.in1 = PWM(Pin(in1_pin), freq=1000, duty=0)
+        self.in2 = PWM(Pin(in2_pin), freq=500, duty=0)
         self.led = Pin(led_pin, Pin.OUT)
 
     def motgo(self, speed):
         if speed > 0:
-            self.in1.value(1)
-            self.in2.value(0)
+            self.in1.duty(1000)
+            self.in2.duty(0)
         elif speed < 0:
-            self.in1.value(0)
-            self.in2.value(1)
+            self.in1.duty(0)
+            self.in2.duty(1000)
         else:
-            self.in1.value(0)
-            self.in2.value(0)
+            self.in1.duty(0)
+            self.in2.duty(0)
 
     def move_for_time(self, speed, duration):
         self.led.value(1)
@@ -74,7 +74,7 @@ def run_motor_and_led():
     button_pin = 12
     quit_button_pin = 14
 
-    button = Pin(button_pin, Pin.IN, Pin.PULL_UP)  # שינוי ל-PULL_UP
+    button = Pin(button_pin, Pin.IN, Pin.PULL_UP)  # Pull-up button
     quit_button = Pin(quit_button_pin, Pin.IN, Pin.PULL_DOWN)
     motor = SimpleMotor(in1_pin, in2_pin, led_pin)
     led_control = LEDControl(NEO_PIN, NUM_LEDS)
@@ -89,7 +89,7 @@ def run_motor_and_led():
             print("Quit button pressed. Exiting motor control.")
             break
 
-        if button.value() == 0:  # עדכון ללחיצה ב-PULL_UP
+        if button.value() == 0:  # Button pressed
             if move_right:
                 motor.move_for_time(1, 0.111)
             else:
@@ -109,3 +109,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
