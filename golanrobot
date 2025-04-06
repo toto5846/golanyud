@@ -1,7 +1,6 @@
 import time
 import _thread
 from machine import Pin
-from led_control import LEDControl
 from motor_control import SimpleMotor
 from display_control import init_display
 
@@ -17,11 +16,13 @@ QUIT_BUTTON_PIN = 14
 # Initialize Components
 button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)  # Pull-up button
 quit_button = Pin(QUIT_BUTTON_PIN, Pin.IN, Pin.PULL_DOWN)
-motor = SimpleMotor(IN1_PIN, IN2_PIN, LED_PIN)
-led_control = LEDControl(NEO_PIN, NUM_LEDS)
+
+# העברנו את ניהול הנאופיקסל לספריית המנוע
+motor = SimpleMotor(IN1_PIN, IN2_PIN, LED_PIN, neopixel_pin=NEO_PIN, num_leds=NUM_LEDS)
 
 # Display Initialization
 display = init_display()
+#display.clear_display()
 
 def run_display():
     """Runs display animations on a separate core."""
@@ -29,13 +30,11 @@ def run_display():
     display.run_animation()
 
 def run_robot():
-    """Main loop that controls the LED and motor."""
+    """Main loop that controls the motor and listens for buttons."""
     move_right = True
     print("Press the green button to move the motor. Press the red quit button to stop the program.")
 
     while True:
-        led_control.moving_colors()
-
         if quit_button.value() == 1:
             print("Quit button pressed. Exiting program.")
             break
@@ -53,4 +52,5 @@ _thread.start_new_thread(run_display, ())
 
 # Run Robot Main Logic on Core 0
 run_robot()
+
 
