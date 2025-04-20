@@ -3,8 +3,8 @@ from machine import Pin, PWM
 import neopixel
 
 # צבעים
-COLOR_OFF = (0, 255, 0)  # אדום - כשהמנוע לא פועל
-COLOR_ON = (255, 0, 0)   # ירוק - כשהמנוע פועל
+COLOR_OFF = (0, 255, 0)  # ירוק - כשהמנוע לא פועל
+COLOR_ON = (255, 0, 0)   # אדום - כשהמנוע פועל
 
 class SimpleMotor:
     def __init__(self, in1_pin, in2_pin, led_pin, buzzer_pin=21, neopixel_pin=22, num_leds=4):
@@ -28,24 +28,25 @@ class SimpleMotor:
         if speed > 0:
             self.in1.duty(1000)
             self.in2.duty(0)
-            self.set_np_color(COLOR_ON)
         elif speed < 0:
             self.in1.duty(0)
             self.in2.duty(1000)
-            self.set_np_color(COLOR_ON)
         else:
             self.in1.duty(0)
             self.in2.duty(0)
-            self.set_np_color(COLOR_OFF)
 
-    def move_for_time(self, speed, duration):
-        """Moves the motor for a specified duration."""
+    def move_for_time(self, speed, duration, light_hold_time=2):
+        """Moves the motor for a specified duration, and keeps red light on longer."""
         self.led.value(1)
-        self.buzzer.duty(512)
+        self.set_np_color(COLOR_ON)  # מפעיל אור אדום כשהמנוע עובד
+        self.buzzer.duty(512)        # מפעיל באזר
         try:
             self.motgo(speed)
             time.sleep(duration)
         finally:
-            self.motgo(0)
+            self.motgo(0)            # עוצר מנוע
+            self.buzzer.duty(0)      # מכבה באזר מיד
             self.led.value(0)
-            self.buzzer.duty(0)
+            time.sleep(light_hold_time)  # ממשיך להחזיק את האור האדום
+            self.set_np_color(COLOR_OFF)  # מחזיר לירוק
+
