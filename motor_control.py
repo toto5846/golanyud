@@ -47,6 +47,5 @@ class SimpleMotor:
             self.motgo(0)            # עוצר מנוע
             self.buzzer.duty(0)      # מכבה באזר מיד
             self.led.value(0)
-            time.sleep(light_hold_time)  # ממשיך להחזיק את האור האדום
-            self.set_np_color(COLOR_OFF)  # מחזיר לירוק
+
 
