@@ -30,14 +30,8 @@ def run_display():
     display.run_animation()
 
 def run_robot():
-    """Main loop that controls the motor and listens for buttons."""
+  
     move_right = True
-    print("Press the green button to move the motor. Press the red quit button to stop the program.")
-
-    while True:
-        if quit_button.value() == 1:
-            print("Quit button pressed. Exiting program.")
-            break
 
         if button.value() == 0:  # Button pressed
             if move_right:
