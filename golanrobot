@@ -32,7 +32,7 @@ def run_display():
 def run_robot():
   
     move_right = True
-
+    while True:
         if button.value() == 0:  # Button pressed
             if move_right:
                 motor.move_for_time(1, 0.111)
