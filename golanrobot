@@ -22,7 +22,7 @@ motor = SimpleMotor(IN1_PIN, IN2_PIN, LED_PIN, neopixel_pin=NEO_PIN, num_leds=NU
 
 # Display Initialization
 display = init_display()
-#display.clear_display()
+
 
 def run_display():
     """Runs display animations on a separate core."""
